@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Friends Chat</title>
 
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <style>
 body{
 margin:0;
-font-family:Inter;
+font-family:Inter, sans-serif;
 background:linear-gradient(135deg,#0f172a,#020617);
 height:100vh;
 display:flex;
@@ -28,24 +28,12 @@ border-radius:18px;
 display:flex;
 flex-direction:column;
 overflow:hidden;
-box-shadow:0 20px 60px rgba(0,0,0,.6);
 }
 
 .header{
 padding:15px;
 border-bottom:1px solid #111827;
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
-
-.header button{
-background:#2563eb;
-border:none;
-color:white;
-padding:8px 12px;
-border-radius:8px;
-cursor:pointer;
+font-weight:600;
 }
 
 .messages{
@@ -94,109 +82,68 @@ background:#2563eb;
 color:white;
 cursor:pointer;
 }
-
-.empty{
-opacity:.5;
-text-align:center;
-margin-top:40px;
-}
 </style>
 </head>
 
 <body>
 
 <div class="app">
+<div class="header">💬 Friends Chat</div>
 
-<div class="header">
-<div>💬 Friends Chat</div>
-<button onclick="connectFriend()">Connect</button>
-</div>
-
-<div class="messages" id="messages">
-<div class="empty">Click Connect to start chatting</div>
-</div>
+<div class="messages" id="messages"></div>
 
 <div class="input">
 <input id="msg" placeholder="Type message..." />
 <button onclick="sendMsg()">Send</button>
 </div>
-
 </div>
 
 <script>
-// ✅ FIXED PEER CONFIG (IMPORTANT)
-let peer = new Peer(undefined, {
-  host: "peerjs.com",
-  secure: true,
-  port: 443,
-  debug: 2
-});
+// 🔥 paste your firebase config here
+const firebaseConfig = {
+apiKey: "YOUR_KEY",
+authDomain: "YOUR_DOMAIN",
+databaseURL: "YOUR_DB_URL",
+projectId: "YOUR_ID"
+};
 
-let conn;
+firebase.initializeApp(firebaseConfig);
+
+const room = new URLSearchParams(location.search).get("room") || "default";
+const db = firebase.database().ref("rooms/" + room);
 
 const messages = document.getElementById("messages");
 const msgInput = document.getElementById("msg");
 
-// incoming connection
-peer.on("connection", c => {
-conn = c;
-
-conn.on("open", () => {
-addMsg("Friend connected ✔", false);
-});
-
-conn.on("data", data => {
-addMsg(data, false);
-});
-});
-
-function connectFriend(){
-const id = prompt("Enter your friend's ID:");
-if(!id) return;
-
-conn = peer.connect(id);
-
-conn.on("open", () => {
-addMsg("Connected ✔", false);
-
-conn.on("data", data => {
-addMsg(data, false);
-});
-});
-
-conn.on("error", err => {
-alert("Connection failed ❌");
-console.log(err);
-});
-}
-
-function addMsg(text,me){
-document.querySelector(".empty")?.remove();
-
-let div = document.createElement("div");
-div.className = "msg" + (me ? " me" : "");
+function addMsg(text, me){
+const div = document.createElement("div");
+div.className = "msg" + (me ? " me":"");
 div.textContent = text;
-
 messages.appendChild(div);
 messages.scrollTop = messages.scrollHeight;
 }
 
+db.on("child_added", snap=>{
+const data = snap.val();
+addMsg(data.text, data.me === id);
+});
+
+const id = Math.random().toString(36).substr(2,5);
+
 function sendMsg(){
-let text = msgInput.value.trim();
+const text = msgInput.value.trim();
 if(!text) return;
 
-addMsg(text,true);
-
-if(conn && conn.open){
-conn.send(text);
-} else {
-alert("Not connected yet!");
-}
+db.push({
+text:text,
+me:id,
+time:Date.now()
+});
 
 msgInput.value="";
 }
 
-msgInput.addEventListener("keydown",(e)=>{
+msgInput.addEventListener("keydown", e=>{
 if(e.key==="Enter") sendMsg();
 });
 </script>
