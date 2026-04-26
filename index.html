@@ -65,7 +65,10 @@ max-width:60%;
 width:fit-content;
 }
 
-.me{background:#2563eb;margin-left:auto}
+.me{
+background:#2563eb;
+margin-left:auto;
+}
 
 .input{
 display:flex;
@@ -121,15 +124,30 @@ margin-top:40px;
 </div>
 
 <script>
-let peer = new Peer();
+// ✅ FIXED PEER CONFIG (IMPORTANT)
+let peer = new Peer(undefined, {
+  host: "peerjs.com",
+  secure: true,
+  port: 443,
+  debug: 2
+});
+
 let conn;
 
 const messages = document.getElementById("messages");
 const msgInput = document.getElementById("msg");
 
+// incoming connection
 peer.on("connection", c => {
 conn = c;
-conn.on("data", data => addMsg(data,false));
+
+conn.on("open", () => {
+addMsg("Friend connected ✔", false);
+});
+
+conn.on("data", data => {
+addMsg(data, false);
+});
 });
 
 function connectFriend(){
@@ -139,7 +157,16 @@ if(!id) return;
 conn = peer.connect(id);
 
 conn.on("open", () => {
-conn.on("data", data => addMsg(data,false));
+addMsg("Connected ✔", false);
+
+conn.on("data", data => {
+addMsg(data, false);
+});
+});
+
+conn.on("error", err => {
+alert("Connection failed ❌");
+console.log(err);
 });
 }
 
@@ -147,10 +174,10 @@ function addMsg(text,me){
 document.querySelector(".empty")?.remove();
 
 let div = document.createElement("div");
-div.className = "msg" + (me ? " me":"");
+div.className = "msg" + (me ? " me" : "");
 div.textContent = text;
-messages.appendChild(div);
 
+messages.appendChild(div);
 messages.scrollTop = messages.scrollHeight;
 }
 
@@ -162,6 +189,8 @@ addMsg(text,true);
 
 if(conn && conn.open){
 conn.send(text);
+} else {
+alert("Not connected yet!");
 }
 
 msgInput.value="";
