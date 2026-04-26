@@ -98,24 +98,18 @@ cursor:pointer;
 </div>
 </div>
 
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script>
-// 🔥 paste your firebase config here
-const firebaseConfig = {
-apiKey: "YOUR_KEY",
-authDomain: "YOUR_DOMAIN",
-databaseURL: "YOUR_DB_URL",
-projectId: "YOUR_ID"
-};
+const room = new URLSearchParams(location.search).get("room") || "friends";
 
-firebase.initializeApp(firebaseConfig);
-
-const room = new URLSearchParams(location.search).get("room") || "default";
-const db = firebase.database().ref("rooms/" + room);
+let peer = new Peer(room + "-" + Math.random().toString(36).slice(2,6));
+let conn;
 
 const messages = document.getElementById("messages");
 const msgInput = document.getElementById("msg");
 
 function addMsg(text, me){
+document.querySelector(".empty")?.remove();
 const div = document.createElement("div");
 div.className = "msg" + (me ? " me":"");
 div.textContent = text;
@@ -123,22 +117,40 @@ messages.appendChild(div);
 messages.scrollTop = messages.scrollHeight;
 }
 
-db.on("child_added", snap=>{
-const data = snap.val();
-addMsg(data.text, data.me === id);
+peer.on("open", id=>{
+// try connecting to room host
+const host = room + "-host";
+
+if(id !== host){
+conn = peer.connect(host);
+
+conn.on("open", ()=>{
+addMsg("Connected ✔", false);
 });
 
-const id = Math.random().toString(36).substr(2,5);
+conn.on("data", data=>addMsg(data,false));
+}
+});
+
+peer.on("connection", c=>{
+conn = c;
+
+conn.on("open", ()=>{
+addMsg("Friend connected ✔", false);
+});
+
+conn.on("data", data=>addMsg(data,false));
+});
 
 function sendMsg(){
 const text = msgInput.value.trim();
 if(!text) return;
 
-db.push({
-text:text,
-me:id,
-time:Date.now()
-});
+addMsg(text,true);
+
+if(conn && conn.open){
+conn.send(text);
+}
 
 msgInput.value="";
 }
