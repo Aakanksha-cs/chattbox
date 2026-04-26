@@ -84,8 +84,11 @@ cursor:pointer;
 </div>
 
 <script>
-const gun = Gun();
-const room = gun.get("friends-room"); // same room for everyone
+const gun = Gun({
+peers:["https://gun-manhattan.herokuapp.com/gun"]
+});
+
+const room = gun.get("friends-room");
 
 const messages = document.getElementById("messages");
 const input = document.getElementById("msg");
@@ -95,7 +98,7 @@ const id = Math.random().toString(36).slice(2);
 room.map().on(data=>{
 if(!data) return;
 
-const div = document.createElement("div");
+const div=document.createElement("div");
 div.className="msg"+(data.id===id?" me":"");
 div.textContent=data.text;
 
