@@ -99,47 +99,41 @@ cursor:pointer;
 </div>
 
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script>
-const room = new URLSearchParams(location.search).get("room") || "friends";
+const room = "friends-room";
 
-let peer = new Peer(room + "-" + Math.random().toString(36).slice(2,6));
+const myId = room + "-" + Math.random().toString(36).slice(2,6);
+const hostId = room + "-host";
+
+let peer = new Peer(myId);
 let conn;
 
 const messages = document.getElementById("messages");
 const msgInput = document.getElementById("msg");
 
-function addMsg(text, me){
+function addMsg(text,me){
 document.querySelector(".empty")?.remove();
+
 const div = document.createElement("div");
-div.className = "msg" + (me ? " me":"");
-div.textContent = text;
+div.className="msg"+(me?" me":"");
+div.textContent=text;
+
 messages.appendChild(div);
 messages.scrollTop = messages.scrollHeight;
 }
 
 peer.on("open", id=>{
-// try connecting to room host
-const host = room + "-host";
+if(id !== hostId){
+conn = peer.connect(hostId);
 
-if(id !== host){
-conn = peer.connect(host);
-
-conn.on("open", ()=>{
-addMsg("Connected ✔", false);
-});
-
-conn.on("data", data=>addMsg(data,false));
+conn.on("data", d=>addMsg(d,false));
 }
 });
 
 peer.on("connection", c=>{
 conn = c;
-
-conn.on("open", ()=>{
-addMsg("Friend connected ✔", false);
-});
-
-conn.on("data", data=>addMsg(data,false));
+conn.on("data", d=>addMsg(d,false));
 });
 
 function sendMsg(){
