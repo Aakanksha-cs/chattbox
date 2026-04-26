@@ -100,16 +100,15 @@ cursor:pointer;
 
 <script>
 const firebaseConfig = {
-apiKey: "YOUR_KEY",
-authDomain: "YOUR_DOMAIN",
-databaseURL: "YOUR_DB_URL",
-projectId: "YOUR_ID"
+apiKey: "PASTE_HERE",
+authDomain: "PASTE_HERE",
+databaseURL: "PASTE_HERE",
+projectId: "PASTE_HERE"
 };
 
 firebase.initializeApp(firebaseConfig);
 
-const room = "friends";
-const db = firebase.database().ref("rooms/" + room);
+const db = firebase.database().ref("chat");
 
 const messages = document.getElementById("messages");
 const msgInput = document.getElementById("msg");
@@ -124,8 +123,9 @@ messages.appendChild(div);
 messages.scrollTop = messages.scrollHeight;
 }
 
-db.on("child_added", snap=>{
+db.limitToLast(100).on("child_added", snap=>{
 const data = snap.val();
+if(!data) return;
 addMsg(data.text, data.sender === myId);
 });
 
@@ -134,9 +134,9 @@ const text = msgInput.value.trim();
 if(!text) return;
 
 db.push({
-text: text,
-sender: myId,
-time: Date.now()
+text:text,
+sender:myId,
+time:Date.now()
 });
 
 msgInput.value="";
