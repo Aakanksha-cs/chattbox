@@ -1,56 +1,46 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Friends Chat</title>
-
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
 
 <style>
 body{
 margin:0;
-font-family:Inter, sans-serif;
-background:linear-gradient(135deg,#0f172a,#020617);
-height:100vh;
-display:flex;
-align-items:center;
-justify-content:center;
+font-family:Arial;
+background:#0f172a;
 color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
 }
 
-.app{
-width:800px;
-height:550px;
+.chat{
+width:100%;
+max-width:500px;
+height:80vh;
 background:#020617;
-border-radius:18px;
 display:flex;
 flex-direction:column;
+border-radius:12px;
 overflow:hidden;
-}
-
-.header{
-padding:15px;
-border-bottom:1px solid #111827;
-font-weight:600;
 }
 
 .messages{
 flex:1;
-padding:20px;
-overflow-y:auto;
-display:flex;
-flex-direction:column;
-gap:10px;
+overflow:auto;
+padding:15px;
 }
 
 .msg{
-padding:10px 14px;
-border-radius:12px;
 background:#111827;
-max-width:60%;
+padding:8px 12px;
+border-radius:10px;
+margin:5px 0;
 width:fit-content;
+max-width:70%;
 }
 
 .me{
@@ -60,24 +50,21 @@ margin-left:auto;
 
 .input{
 display:flex;
-padding:12px;
-gap:10px;
 border-top:1px solid #111827;
 }
 
-.input input{
+input{
 flex:1;
 padding:12px;
-border-radius:10px;
 border:none;
-background:#111827;
+outline:none;
+background:#020617;
 color:white;
 }
 
-.input button{
+button{
 padding:12px 16px;
 border:none;
-border-radius:10px;
 background:#2563eb;
 color:white;
 cursor:pointer;
@@ -87,63 +74,49 @@ cursor:pointer;
 
 <body>
 
-<div class="app">
-<div class="header">💬 Friends Chat</div>
-
+<div class="chat">
 <div class="messages" id="messages"></div>
 
 <div class="input">
 <input id="msg" placeholder="Type message..." />
-<button onclick="sendMsg()">Send</button>
+<button onclick="send()">Send</button>
 </div>
 </div>
 
 <script>
-const firebaseConfig = {
-apiKey: "PASTE_HERE",
-authDomain: "PASTE_HERE",
-databaseURL: "PASTE_HERE",
-projectId: "PASTE_HERE"
-};
-
-firebase.initializeApp(firebaseConfig);
-
-const db = firebase.database().ref("chat");
+const gun = Gun();
+const room = gun.get("friends-room"); // same room for everyone
 
 const messages = document.getElementById("messages");
-const msgInput = document.getElementById("msg");
+const input = document.getElementById("msg");
 
-const myId = Math.random().toString(36).slice(2,7);
+const id = Math.random().toString(36).slice(2);
 
-function addMsg(text, me){
-const div = document.createElement("div");
-div.className = "msg" + (me ? " me":"");
-div.textContent = text;
-messages.appendChild(div);
-messages.scrollTop = messages.scrollHeight;
-}
-
-db.limitToLast(100).on("child_added", snap=>{
-const data = snap.val();
+room.map().on(data=>{
 if(!data) return;
-addMsg(data.text, data.sender === myId);
+
+const div = document.createElement("div");
+div.className="msg"+(data.id===id?" me":"");
+div.textContent=data.text;
+
+messages.appendChild(div);
+messages.scrollTop=messages.scrollHeight;
 });
 
-function sendMsg(){
-const text = msgInput.value.trim();
-if(!text) return;
+function send(){
+if(!input.value) return;
 
-db.push({
-text:text,
-sender:myId,
+room.set({
+text:input.value,
+id:id,
 time:Date.now()
 });
 
-msgInput.value="";
+input.value="";
 }
 
-msgInput.addEventListener("keydown", e=>{
-if(e.key==="Enter") sendMsg();
+input.addEventListener("keydown",e=>{
+if(e.key==="Enter") send();
 });
 </script>
 
